@@ -1,6 +1,7 @@
+import os
+
 import openai
 import streamlit as st
-from secret import api_key
 from objects.ConversationObject import ConversationObject
 
 object_list = [
@@ -34,7 +35,7 @@ def main():
         st.chat_message(msg["role"]).write(msg["content"])
 
     if prompt := st.chat_input():
-        openai.api_key = api_key
+        openai.api_key = os.getenv("OPENAI_API_KEY")
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user").write(prompt)
         response = openai.chat.completions.create(
