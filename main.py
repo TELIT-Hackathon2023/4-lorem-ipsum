@@ -1,8 +1,8 @@
 import os
-
 import openai
 import streamlit as st
 from objects.ConversationObject import ConversationObject
+import dotenv
 
 object_list = [
     ConversationObject("Object 1", "test content 1"),
@@ -19,9 +19,8 @@ def set_actual_conversation(obj: ConversationObject):
 
 
 def main():
+    dotenv.load_dotenv()
     with st.sidebar:
-        # openai_api_key = st.title("How can I help you today?")
-
         for i, obj in enumerate(object_list):
             if st.button(obj.title):
                 set_actual_conversation(obj)
