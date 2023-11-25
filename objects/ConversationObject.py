@@ -9,7 +9,13 @@ class ConversationObject:
 
     @staticmethod
     def init_new():
-        return ConversationObject("New chat", [], time.time())
+        return ConversationObject("New chat", [(None, "How cat I help you?")], time.time())
 
-    def add_question_answer_pair(self, question: str, answer: str):
+    def add_question_answer_pair(self, question, answer):
         self.content.append((question, answer))
+
+    def change_title(self, new_title: str):
+        self.title = new_title
+
+    # def get_last_content_pair(self):
+    #     return self.content[self.]
