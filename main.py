@@ -6,11 +6,16 @@ import streamlit as st
 from objects.ConversationObject import ConversationObject
 from dotenv import load_dotenv
 import time
+import pickle
+
 
 load_dotenv()
 
 if 'conversation_list' not in st.session_state:
-    st.session_state['conversation_list'] = []
+    try:
+        st.session_state['conversation_list'] = pickle.load(open("local_storage", "rb"))
+    except:
+        st.session_state['conversation_list'] = []
 
 if 'actual_conversation' not in st.session_state:
     st.session_state['actual_conversation'] = ConversationObject.init_new()
@@ -57,6 +62,7 @@ def process_user_input():
         st.session_state['conversation_list'].insert(0, actual)
 
     actual.add_question_answer_pair(question=prompt, answer="Placeholder")
+    pickle.dump(st.session_state['conversation_list'], open("local_storage", "wb"))
 
 
 def main():
