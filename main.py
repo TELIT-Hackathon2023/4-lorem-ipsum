@@ -1,16 +1,15 @@
 import os
-
 import openai
 import streamlit as st
 from objects.ConversationObject import ConversationObject
 
-object_list = [
-    ConversationObject("Object 1", "test content 1"),
-    ConversationObject("Object 2", "test content 2"),
-    ConversationObject("Object 3", "test content 3"),
+conversations_list = [
+    ConversationObject("Title 1", [("Question 1", "Answer 1"), ("Question 2", "Answer 2")]),
+    ConversationObject("Title 2", [("Question 1", "Answer 1"),]),
+    ConversationObject("Title 3", [("Question 1", "Answer 1"), ("Question 2", "Answer 2"), ("Question 3", "Answer 3"), ("Question 4", "Answer 4")]),
 ]
 
-actual_conversation: ConversationObject = object_list[0]
+actual_conversation: ConversationObject = conversations_list[0]
 
 
 def set_actual_conversation(obj: ConversationObject):
@@ -22,7 +21,7 @@ def main():
     with st.sidebar:
         # openai_api_key = st.title("How can I help you today?")
 
-        for i, obj in enumerate(object_list):
+        for i, obj in enumerate(conversations_list):
             if st.button(obj.title):
                 set_actual_conversation(obj)
 
