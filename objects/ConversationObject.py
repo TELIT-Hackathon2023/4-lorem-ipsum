@@ -10,3 +10,6 @@ class ConversationObject:
     @staticmethod
     def init_new():
         return ConversationObject("New chat", [], time.time())
+
+    def add_question_answer_pair(self, question: str, answer: str):
+        self.content.append((question, answer))

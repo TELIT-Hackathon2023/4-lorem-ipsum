@@ -7,10 +7,6 @@ import time
 
 load_dotenv()
 
-print("------------------")
-print(os.getenv("OPENAI_API_KEY"))
-print("------------------")
-
 conversations_list = [
     ConversationObject("Title 1", [("Question 1", "Answer 1"), ("Question 2", "Answer 2")], time.time()),
     ConversationObject("Title 2", [("Question 1", "Answer 1"),], time.time()),
