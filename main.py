@@ -27,8 +27,6 @@ def set_actual_conversation(obj: ConversationObject):
 
 def main():
     with st.sidebar:
-        # openai_api_key = st.title("How can I help you today?")
-
         for i, obj in enumerate(conversations_list):
             if st.button(obj.title):
                 set_actual_conversation(obj)
