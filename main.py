@@ -6,7 +6,6 @@ import streamlit as st
 from objects.ConversationObject import ConversationObject
 from dotenv import load_dotenv
 import time
-from streamlit_ws_localstorage import injectWebsocketCode, getOrCreateUID
 import pickle
 
 
