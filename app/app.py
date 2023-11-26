@@ -8,7 +8,6 @@ from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import format_document
 
-from langchain.schema import HumanMessage, SystemMessage
 from langchain.schema.runnable import RunnableParallel, RunnablePassthrough
 from flask import Flask, request, Response, render_template
 from dotenv import load_dotenv
@@ -22,15 +21,18 @@ os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 # print(os.environ["OPENAI_API_KEY"])
 
 embeddings = OpenAIEmbeddings()
-db = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
-retriever = db.as_retriever()
+db = Chroma(persist_directory="./chroma_db_extended", embedding_function=embeddings)
+retriever = db.as_retriever(search_type="mmr",
+    search_kwargs={'k': 10, 'fetch_k': 50})
 memory_list = {}
 
-_template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
+_template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question
 
 Chat History:
 {chat_history}
 Follow Up Input: {question}
+
+Answer in the following language: {language}
 Standalone question:"""
 CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
@@ -44,6 +46,8 @@ template = """Answer the question based only on the following context:
 {context}
 
 Question: {question}
+
+Answer in the following language: {language}
 """
 ANSWER_PROMPT = ChatPromptTemplate.from_template(template)
 
@@ -71,15 +75,6 @@ def create_memory(thread_id):
 
 
 def create_memory_request(query, thread_id):
-    # memory = ConversationBufferMemory(
-    #     return_messages=True, output_key="answer", input_key="question"
-    # )
-    #
-    # # First we add a step to load memory
-    # # This adds a "memory" key to the input object
-    # loaded_memory = RunnablePassthrough.assign(
-    #     chat_history=RunnableLambda(memory.load_memory_variables) | itemgetter("history"),
-    # )
 
     loaded_memory = RunnablePassthrough.assign(
         chat_history=RunnableLambda(memory_list[thread_id].load_memory_variables) | itemgetter("history"),
@@ -89,6 +84,7 @@ def create_memory_request(query, thread_id):
         "standalone_question": {
                                    "question": lambda x: x["question"],
                                    "chat_history": lambda x: _format_chat_history(x["chat_history"]),
+                                   "language": lambda x: x["language"]
                                }
                                | CONDENSE_QUESTION_PROMPT
                                | ChatOpenAI(model_name="gpt-4", temperature=0)
@@ -98,11 +94,13 @@ def create_memory_request(query, thread_id):
     retrieved_documents = {
         "docs": itemgetter("standalone_question") | retriever,
         "question": lambda x: x["standalone_question"],
+        "language":lambda x: x["standalone_question"]
     }
     # Now we construct the inputs for the final prompt
     final_inputs = {
         "context": lambda x: _combine_documents(x["docs"]),
         "question": itemgetter("question"),
+        "language": itemgetter("language")
     }
     # And finally, we do the part that returns the answers
     answer = {
@@ -118,22 +116,8 @@ def create_memory_request(query, thread_id):
     print(memory_list[thread_id].load_memory_variables({}))
     return result
 
-
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
-
-
-def create_title_request(msg):
-    chat = ChatOpenAI(temperature=0)
-    messages = [
-        SystemMessage(
-            content="You are a helpful assistant that creates short title from message"
-        ),
-        HumanMessage(
-            content=msg
-        ),
-    ]
-    return chat(messages)
 
 
 @app.route('/health-check')
@@ -141,25 +125,19 @@ def health_check():
     return {"status": "Up and running!"}
 
 
-@app.route('/get_title', methods=['POST'])
-def get_title():
-    req = request.json["query"]
-    response = create_title_request(req)
-    print(response)
-    return {"content": response.content}
-
-
 @app.route('/query_request', methods=['POST'])
 def query_request():
     req = request.json["query"]
     id = request.json["thread_id"]
+    # lang = request.json["language"]
+    lang = "English"
     if id not in memory_list:
         create_memory(id)
-    res = create_memory_request({"question": req}, id)
-    # res = chain.invoke({"question": res, "language": "italian"})
-    print(res)
+    res = create_memory_request({"question": req, "language": lang}, id)
+    links = [x.replace(' ', '_', x.count(' ')) for x in list(set([doc.metadata["source"] for doc in res["docs"]]))]
+
     return {"content": res["answer"].content,
-        "metadata": list(set([doc.metadata["source"] for doc in res["docs"]]))}
+            "metadata": links}
 
 # Uncommit if you want to deploy locally without docker
 port = int(os.environ.get('PORT', 5000))
