@@ -7,6 +7,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import format_document
+from openai import OpenAI
 
 from langchain.schema import HumanMessage, SystemMessage
 from langchain.schema.runnable import RunnableParallel, RunnablePassthrough
@@ -35,13 +36,24 @@ Follow Up Input: {question}
 
 Answer in the following language: {language}
 Standalone question:"""
-CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
-DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
 
-model = ChatOpenAI(
-    model_name="gpt-4",
-    temperature=0)
+_template_de = """Angesichts des folgenden Gesprächs und einer Folgefrage formulieren Sie die Folgefrage so um, dass sie eine eigenständige Frage ist
 
+Chatverlauf:
+{chat_history}
+Follow-up-Eingabe: {question}
+
+Antworten Sie in der folgenden Sprache: {language}
+Eigenständige Frage:"""
+
+_template_sk = """Vzhľadom na nasledujúcu konverzáciu a doplňujúcu otázku preformulujte doplňujúcu otázku na samostatnú otázku
+
+História rozhovoru:
+{chat_history}
+Následný vstup: {question}
+
+Odpoveď v nasledujúcom jazyku: {language}
+Samostatná otázka:"""
 
 template = """Answer the question based only on the following context:
 {context}
@@ -50,7 +62,59 @@ Question: {question}
 
 Answer in the following language: {language}
 """
+
+template_de = """Beantworten Sie die Frage nur basierend auf dem folgenden Kontext:
+{context}
+
+Frage: {question}
+
+Antworten Sie in der folgenden Sprache: {language}
+"""
+
+template_sk = """Odpovedzte na otázku len na základe nasledujúceho kontextu:
+{context}
+
+Otázka: {question}
+
+Odpoveď v nasledujúcom jazyku: {language}
+"""
+
+CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
+CONDENSE_QUESTION_PROMPT_DE = PromptTemplate.from_template(_template_de)
+CONDENSE_QUESTION_PROMPT_SK = PromptTemplate.from_template(_template_sk)
+
+DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
+
+model = ChatOpenAI(
+    model_name="gpt-4",
+    temperature=0)
+
+
+
 ANSWER_PROMPT = ChatPromptTemplate.from_template(template)
+ANSWER_PROMPT_SK = ChatPromptTemplate.from_template(template_sk)
+ANSWER_PROMPT_DE = ChatPromptTemplate.from_template(template_de)
+
+
+def get_language(text):
+    content = f"""What is the laguage of this text:{text}? Answer strictly from this options: 1. English 2. German, 3. Slovak"""
+    client = OpenAI()
+
+    cl = client.completions.create(
+        model="gpt-3.5-turbo-instruct",
+        prompt=content,
+        temperature=0
+    )
+
+    params_list = cl.choices
+    print(params_list[0].text)
+    if "slovak" in params_list[0].text.lower():
+        return "slovak"
+    elif "english" in params_list[0].text.lower():
+        return "english"
+    else:
+        return "german"
+
 
 def _format_chat_history(chat_history: List[Tuple]) -> str:
     print(chat_history)
@@ -61,6 +125,7 @@ def _format_chat_history(chat_history: List[Tuple]) -> str:
         ai = "Assistant: " + chat_history[1].content
         buffer += "\n" + "\n".join([human, ai])
     return buffer
+
 
 def _combine_documents(docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"):
     doc_strings = [format_document(doc, document_prompt) for doc in docs]
@@ -74,8 +139,7 @@ def create_memory(thread_id):
     memory_list[thread_id] = memory
 
 
-
-def create_memory_request(query, thread_id):
+def create_memory_request(query, thread_id, promt1, promt2):
 
     loaded_memory = RunnablePassthrough.assign(
         chat_history=RunnableLambda(memory_list[thread_id].load_memory_variables) | itemgetter("history"),
@@ -117,6 +181,7 @@ def create_memory_request(query, thread_id):
     print(memory_list[thread_id].load_memory_variables({}))
     return result
 
+
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
 
@@ -153,10 +218,16 @@ def query_request():
     req = request.json["query"]
     id = request.json["thread_id"]
     # lang = request.json["language"]
-    lang = "English"
+    lang = get_language(req)
     if id not in memory_list:
         create_memory(id)
-    res = create_memory_request({"question": req, "language": lang}, id)
+    if lang == 'slovak':
+        res = create_memory_request({"question": req, "language": lang}, id, CONDENSE_QUESTION_PROMPT_SK, ANSWER_PROMPT_SK)
+    if lang == 'german':
+        res = create_memory_request({"question": req, "language": lang}, id, CONDENSE_QUESTION_PROMPT_DE, ANSWER_PROMPT_DE)
+    else:
+        res = create_memory_request({"question": req, "language": lang}, id, CONDENSE_QUESTION_PROMPT, ANSWER_PROMPT)
+
     links = [x.replace(' ', '_', x.count(' ')) for x in list(set([doc.metadata["source"] for doc in res["docs"]]))]
 
     return {"content": res["answer"].content,
