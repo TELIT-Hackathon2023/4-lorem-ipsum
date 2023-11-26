@@ -92,7 +92,8 @@ def process_user_input():
     if len(fixed) == 0:
         actual.add_answer_to_last_content_pair(r['content'])
     else:
-        actual.add_answer_to_last_content_pair(r['content'] + "     " + fixed[0])
+        sources = "\n".join(fixed[:5])
+        actual.add_answer_to_last_content_pair(r['content'] + "\n" + sources)
 
     pickle.dump(st.session_state['conversation_list'], open("local_storage", "wb"))
 
