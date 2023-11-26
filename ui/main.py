@@ -83,6 +83,16 @@ def process_user_input():
     r = requests.post(API_ENDPOINT, json=body).json()
 
     actual.add_answer_to_last_content_pair(r['content'])
+    metadata: [str] = r['metadata']
+    fixed = []
+    for link in metadata:
+        fixed.append(link.replace(" ", "_"))
+    print(fixed)
+
+    if len(fixed) == 0:
+        actual.add_answer_to_last_content_pair(r['content'])
+    else:
+        actual.add_answer_to_last_content_pair(r['content'] + "     " + fixed[0])
 
     pickle.dump(st.session_state['conversation_list'], open("local_storage", "wb"))
 
