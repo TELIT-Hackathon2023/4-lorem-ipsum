@@ -8,6 +8,7 @@ from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import format_document
 
+from langchain.schema import HumanMessage, SystemMessage
 from langchain.schema.runnable import RunnableParallel, RunnablePassthrough
 from flask import Flask, request, Response, render_template
 from dotenv import load_dotenv
@@ -120,9 +121,31 @@ def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
 
 
+
+def create_title_request(msg):
+    chat = ChatOpenAI(temperature=0)
+    messages = [
+        SystemMessage(
+            content="You are a helpful assistant that creates short title from message"
+        ),
+        HumanMessage(
+            content=msg
+        ),
+    ]
+    return chat(messages)
+
+
 @app.route('/health-check')
 def health_check():
     return {"status": "Up and running!"}
+
+
+@app.route('/get_title', methods=['POST'])
+def get_title():
+    req = request.json["query"]
+    response = create_title_request(req)
+    print(response)
+    return {"content": response.content}
 
 
 @app.route('/query_request', methods=['POST'])
