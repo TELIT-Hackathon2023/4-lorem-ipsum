@@ -1,5 +1,7 @@
 import os
 import random
+import uuid
+
 import requests
 import openai
 import streamlit as st
@@ -7,6 +9,7 @@ from objects.ConversationObject import ConversationObject
 from dotenv import load_dotenv
 import time
 import pickle
+from objects.ConversationContentObject import ConversationContentObject
 
 load_dotenv()
 
@@ -29,14 +32,14 @@ def set_actual_conversation(obj: ConversationObject):
 
 
 def show_conversation_context():
-    for pair in get_actual_conversation().content:
-        question = pair[0]
+    for conversation_content_object in get_actual_conversation().content:
+        question = conversation_content_object.question
         if question is not None:
-            st.chat_message("user").write(pair[0])
+            st.chat_message("user").write(question)
 
-        answer = pair[1]
+        answer = conversation_content_object.answer
         if answer is not None:
-            st.chat_message("assistant").write(pair[1])
+            st.chat_message("assistant").write(answer)
 
 
 def start_new_conversation():
@@ -49,30 +52,37 @@ def start_new_conversation():
 
 
 def process_user_input():
+    st.session_state['is_input_blocked'] = True
     prompt = st.session_state.user_input.strip()
     if len(prompt) == 0:
         return
 
-    print(prompt)
-
     actual = get_actual_conversation()
     if len(actual.content) == 1:
-        actual.change_title(prompt)
+        API_ENDPOINT = "http://147.232.156.113:5000/get_title"
+
+        body = {
+            "query": prompt,
+        }
+        r = requests.post(API_ENDPOINT, json=body).json()
+        print(r)
+
+        actual.change_title(r['content'])
         set_actual_conversation(actual)
         st.session_state['conversation_list'].insert(0, actual)
 
-    actual.add_question_answer_pair(question=prompt, answer="Placeholder")
+    actual.add_question_answer_pair(ConversationContentObject(question=prompt, answer=None))
 
-    # API_ENDPOINT = "http://147.232.156.113:5000/query_request"
-    #
-    # data = {
-    #     "query": "Kto je gendalf",
-    #     "thread_id": 1
-    # }
-    #
-    # r = requests.post(url=API_ENDPOINT, data=data)
-    # json = r.json()
-    # print(json)
+    API_ENDPOINT = "http://147.232.156.113:5000/query_request"
+
+    body = {
+        "query": prompt,
+        "thread_id": actual.id
+    }
+
+    r = requests.post(API_ENDPOINT, json=body).json()
+
+    actual.add_answer_to_last_content_pair(r['content'])
 
     pickle.dump(st.session_state['conversation_list'], open("local_storage", "wb"))
 
@@ -89,11 +99,13 @@ def main():
         )
 
         for conversation in st.session_state['conversation_list']:
-            st.button(conversation.title, on_click=set_actual_conversation, args=[conversation])
+            st.button(conversation.title, on_click=set_actual_conversation, args=[conversation], key=uuid.uuid1().int)
 
     st.title(get_actual_conversation().title)
     show_conversation_context()
-    st.chat_input(on_submit=process_user_input, key="user_input")
+
+    st.session_state['is_input_blocked'] = False
+    st.chat_input(on_submit=process_user_input, key="user_input", disabled=st.session_state['is_input_blocked'])
 
 
 if __name__ == "__main__":
