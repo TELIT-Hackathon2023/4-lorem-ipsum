@@ -13,7 +13,7 @@ class ConversationObject:
 
     @staticmethod
     def init_new():
-        return ConversationObject("New chat", [ConversationContentObject(None, "How cat I help you?")], time.time())
+        return ConversationObject("New chat", [ConversationContentObject(None, "How can I help you?")], time.time())
 
     def add_question_answer_pair(self, conversation_content_object: ConversationContentObject):
         self.content.append(conversation_content_object)
