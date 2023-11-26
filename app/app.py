@@ -32,7 +32,7 @@ _template = """Given the following conversation and a follow up question, rephra
 
 Chat History:
 {chat_history}
-Follow Up Input: {question}
+Follow Up Input: {question} in LOTR
 
 Answer in the following language: {language}
 Standalone question:"""
@@ -41,7 +41,7 @@ _template_de = """Angesichts des folgenden Gesprächs und einer Folgefrage formu
 
 Chatverlauf:
 {chat_history}
-Follow-up-Eingabe: {question}
+Follow-up-Eingabe: {question} in LOTR
 
 Antworten Sie in der folgenden Sprache: {language}
 Eigenständige Frage:"""
@@ -50,7 +50,7 @@ _template_sk = """Vzhľadom na nasledujúcu konverzáciu a doplňujúcu otázku 
 
 História rozhovoru:
 {chat_history}
-Následný vstup: {question}
+Následný vstup: {question} v LOTR
 
 Odpoveď v nasledujúcom jazyku: {language}
 Samostatná otázka:"""
@@ -58,7 +58,7 @@ Samostatná otázka:"""
 template = """Answer the question based only on the following context:
 {context}
 
-Question: {question}
+Question: {question} in LOTR
 
 Answer in the following language: {language}
 """
@@ -66,7 +66,7 @@ Answer in the following language: {language}
 template_de = """Beantworten Sie die Frage nur basierend auf dem folgenden Kontext:
 {context}
 
-Frage: {question}
+Frage: {question} in LOTR
 
 Antworten Sie in der folgenden Sprache: {language}
 """
@@ -74,7 +74,7 @@ Antworten Sie in der folgenden Sprache: {language}
 template_sk = """Odpovedzte na otázku len na základe nasledujúceho kontextu:
 {context}
 
-Otázka: {question}
+Otázka: {question} v LOTR
 
 Odpoveď v nasledujúcom jazyku: {language}
 """
