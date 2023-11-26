@@ -1,4 +1,5 @@
 import time
+import uuid
 
 
 class ConversationObject:
@@ -6,6 +7,7 @@ class ConversationObject:
         self.title: str = title
         self.content: [(str, str)] = content
         self.timestamp = timestamp
+        self.id = uuid.uuid1()
 
     @staticmethod
     def init_new():

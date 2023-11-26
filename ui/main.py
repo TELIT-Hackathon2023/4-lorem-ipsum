@@ -1,13 +1,12 @@
 import os
 import random
-
+import requests
 import openai
 import streamlit as st
 from objects.ConversationObject import ConversationObject
 from dotenv import load_dotenv
 import time
 import pickle
-
 
 load_dotenv()
 
@@ -48,6 +47,7 @@ def start_new_conversation():
     if last.title != "New chat":
         set_actual_conversation(ConversationObject.init_new())
 
+
 def process_user_input():
     prompt = st.session_state.user_input.strip()
     if len(prompt) == 0:
@@ -62,12 +62,31 @@ def process_user_input():
         st.session_state['conversation_list'].insert(0, actual)
 
     actual.add_question_answer_pair(question=prompt, answer="Placeholder")
+
+    # API_ENDPOINT = "http://147.232.156.113:5000/query_request"
+    #
+    # data = {
+    #     "query": "Kto je gendalf",
+    #     "thread_id": 1
+    # }
+    #
+    # r = requests.post(url=API_ENDPOINT, data=data)
+    # json = r.json()
+    # print(json)
+
     pickle.dump(st.session_state['conversation_list'], open("local_storage", "wb"))
 
 
 def main():
     with st.sidebar:
         st.sidebar.button("Start a new conversation", type="primary", on_click=start_new_conversation)
+
+        st.markdown(
+            """
+            <div><br /></div>
+            """,
+            unsafe_allow_html=True
+        )
 
         for conversation in st.session_state['conversation_list']:
             st.button(conversation.title, on_click=set_actual_conversation, args=[conversation])

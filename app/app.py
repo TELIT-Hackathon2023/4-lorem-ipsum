@@ -135,7 +135,8 @@ def query_request():
     res = create_memory_request({"question": req}, id)
     # res = chain.invoke({"question": res, "language": "italian"})
     print(res)
-    return {"data": f"""{res}"""}
+    return {"content": res["answer"].content, "metadata": list(set([doc.metadata["source"] for doc in res["docs"]]))}
+
 # Uncommit if you want to deploy locally without docker
 port = int(os.environ.get('PORT', 5000))
 app.run(debug=True, host='0.0.0.0', port=port)
